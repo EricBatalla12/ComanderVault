@@ -71,4 +71,15 @@ export const demoCommanders = () => [
     games: games('LLWLDL'),
     prevWins: 2, prevLosses: 5,
   }),
+  make('The Ur-Dragon', ['W', 'U', 'B', 'R', 'G'], 'Legendary Creature — Dragon Avatar', {
+    status: 'wishlist', priority: 1, bracket: 3, tags: ['dragones'],
+    notes: 'Tribal de dragones a cinco colores. Mirar listas de presupuesto medio.',
+  }),
+  make('Light-Paws, Emperor\'s Voice', ['W'], 'Legendary Creature — Fox Advisor', {
+    status: 'wishlist', priority: 2, bracket: 2, tags: ['auras', 'voltron'],
+    notes: 'Auras baratas en cadena. Parece muy divertido.',
+  }),
+  make('Kinnan, Bonder Prodigy', ['U', 'G'], 'Legendary Creature — Human Druid', {
+    status: 'wishlist', priority: 3, bracket: 4, tags: ['rampa'],
+  }),
 ];

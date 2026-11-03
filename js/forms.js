@@ -10,17 +10,21 @@ import { openModal, closeModal, toast, icons, starsInput, bindStarInputs, artLay
 // Comandante
 // ------------------------------------------------------------------
 
-export function openCommanderForm(existing) {
+const PRIORITIES = { 1: 'Alta', 2: 'Media', 3: 'Baja' };
+
+export function openCommanderForm(existing, { wishlist = existing?.status === 'wishlist' } = {}) {
   const isEdit = !!existing;
+  const wish = wishlist;
   const draft = structuredClone(
-    existing || store.normalizeCommander({ id: '__new__', name: '', links: [{ url: '', label: '' }] })
+    existing || store.normalizeCommander({ id: '__new__', name: '', links: [{ url: '', label: '' }], status: wish ? 'wishlist' : 'active' })
   );
   if (!isEdit) draft.name = '';
+  const title = wish ? (isEdit ? 'Editar «Por jugar»' : 'Añadir a Por jugar') : isEdit ? 'Editar comandante' : 'Nuevo comandante';
 
   const dlg = openModal(
     `<form class="cmd-form" novalidate>
       <div class="modal-head">
-        <h2>${isEdit ? 'Editar comandante' : 'Nuevo comandante'}</h2>
+        <h2>${title}</h2>
         <button class="icon-btn" data-close type="button" aria-label="Cerrar">${icons.x}</button>
       </div>
       <div class="modal-body">
@@ -59,7 +63,7 @@ export function openCommanderForm(existing) {
           <div id="cf-partner"></div>
         </section>
 
-        <section class="form-section">
+        ${wish ? '' : `<section class="form-section">
           <span class="label">Valoración general</span>
           ${starsInput(draft.rating)}
           <div class="sub-ratings">
@@ -68,20 +72,24 @@ export function openCommanderForm(existing) {
                 <input type="range" min="0" max="10" step="1" name="sub-${k}" value="${draft.sub[k]}">
                 <output>${draft.sub[k] || '–'}</output></label>`).join('')}
           </div>
-        </section>
+        </section>`}
 
         <section class="form-section grid-2">
-          <div class="field"><span class="label">Bracket</span>
+          <div class="field"><span class="label">${wish ? 'Bracket objetivo' : 'Bracket'}</span>
             <div class="chips" id="cf-bracket">
               <button type="button" class="chip ${!draft.bracket ? 'on' : ''}" data-bracket="">—</button>
               ${Object.entries(BRACKETS).map(([n, l]) => `<button type="button" class="chip ${draft.bracket == n ? 'on' : ''}" data-bracket="${n}" title="${l}">${n}</button>`).join('')}
             </div>
           </div>
-          <div class="field"><span class="label">Estado</span>
+          ${wish ? `<div class="field"><span class="label">Prioridad</span>
+            <div class="chips" id="cf-priority">
+              ${Object.entries(PRIORITIES).map(([k, l]) => `<button type="button" class="chip ${draft.priority == k ? 'on' : ''}" data-priority="${k}">${l}</button>`).join('')}
+            </div>
+          </div>` : `<div class="field"><span class="label">Estado</span>
             <div class="chips" id="cf-status">
               ${Object.entries(STATUS).map(([k, s]) => `<button type="button" class="chip ${draft.status === k ? 'on' : ''}" data-status="${k}">${s.label}</button>`).join('')}
             </div>
-          </div>
+          </div>`}
         </section>
 
         <section class="form-section">
@@ -95,21 +103,22 @@ export function openCommanderForm(existing) {
           <label class="field"><span class="label">Etiquetas</span>
             <input name="tags" value="${esc(draft.tags.join(', '))}" placeholder="tokens, aristocrats, voltron… (separadas por comas)"></label>
           <label class="field"><span class="label">Notas</span>
-            <textarea name="notes" rows="3" placeholder="Combos, cartas clave, ideas de mejora…">${esc(draft.notes)}</textarea></label>
+            <textarea name="notes" rows="3" placeholder="${wish ? '¿Por qué te llama? Ideas, cartas clave, presupuesto…' : 'Combos, cartas clave, ideas de mejora…'}">${esc(draft.notes)}</textarea></label>
         </section>
 
-        <section class="form-section">
+        ${wish ? '' : `<section class="form-section">
           <span class="label">Récord previo <small class="muted">(partidas jugadas antes de usar la app)</small></span>
           <div class="grid-3">
             <label class="field"><span class="label small">Victorias</span><input name="prevWins" type="number" min="0" inputmode="numeric" value="${draft.prevWins}"></label>
             <label class="field"><span class="label small">Derrotas</span><input name="prevLosses" type="number" min="0" inputmode="numeric" value="${draft.prevLosses}"></label>
             <label class="field"><span class="label small">Empates</span><input name="prevDraws" type="number" min="0" inputmode="numeric" value="${draft.prevDraws}"></label>
           </div>
-        </section>
+        </section>`}
       </div>
       <div class="modal-foot">
+        ${wish && isEdit ? `<button class="btn btn-win foot-left" id="cf-played" type="button">${icons.check} Lo he jugado</button>` : ''}
         <button class="btn btn-ghost" data-close type="button">Cancelar</button>
-        <button class="btn btn-primary" type="submit">${isEdit ? 'Guardar cambios' : 'Añadir a la bóveda'}</button>
+        <button class="btn btn-primary" type="submit">${isEdit ? 'Guardar cambios' : wish ? 'Añadir a Por jugar' : 'Añadir a la bóveda'}</button>
       </div>
     </form>`,
     { wide: true }
@@ -276,7 +285,12 @@ export function openCommanderForm(existing) {
       fn(b.dataset[attr]);
     });
   chipGroup('#cf-bracket', 'bracket', (v) => (draft.bracket = v ? +v : null));
-  chipGroup('#cf-status', 'status', (v) => (draft.status = v));
+  if (wish) chipGroup('#cf-priority', 'priority', (v) => (draft.priority = +v));
+  else chipGroup('#cf-status', 'status', (v) => (draft.status = v));
+  $('#cf-played', dlg)?.addEventListener('click', () => {
+    draft.status = 'active';
+    form.requestSubmit();
+  });
   $$('input[type=range]', dlg).forEach((r) =>
     r.addEventListener('input', () => {
       r.nextElementSibling.textContent = r.value === '0' ? '–' : r.value;
@@ -303,7 +317,7 @@ export function openCommanderForm(existing) {
     draft.typeLine = form.typeLine.value.trim();
     draft.tags = [...new Set(form.tags.value.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean))];
     draft.notes = form.notes.value.trim();
-    ['prevWins', 'prevLosses', 'prevDraws'].forEach((k) => (draft[k] = Math.max(0, parseInt(form[k].value, 10) || 0)));
+    ['prevWins', 'prevLosses', 'prevDraws'].forEach((k) => form[k] && (draft[k] = Math.max(0, parseInt(form[k].value, 10) || 0)));
     draft.links = draft.links
       .map((l) => ({ ...l, id: l.id || uid(), url: normalizeUrl(l.url) }))
       .filter((l) => l.url && isSafeUrl(l.url));
@@ -312,8 +326,15 @@ export function openCommanderForm(existing) {
 
     const saved = store.upsertCommander(draft);
     closeModal();
-    toast(isEdit ? 'Cambios guardados' : `${saved.name} añadido a la bóveda`, { icon: '✦' });
-    if (!isEdit) navigate(`#/c/${saved.id}`);
+    if (wish && saved.status === 'active') {
+      toast(`${saved.name} pasa a tu colección`, { icon: '✦', undo: () => store.patchCommander(saved.id, { status: 'wishlist' }) });
+    } else if (wish) {
+      toast(isEdit ? 'Cambios guardados' : `${saved.name} añadido a Por jugar`, { icon: '✦' });
+      if (!isEdit) navigate('#/wishlist');
+    } else {
+      toast(isEdit ? 'Cambios guardados' : `${saved.name} añadido a la bóveda`, { icon: '✦' });
+      if (!isEdit) navigate(`#/c/${saved.id}`);
+    }
   });
 
   renderPreview();
@@ -381,11 +402,35 @@ export function openGameForm(commander, existing, presetResult) {
 }
 
 // ------------------------------------------------------------------
+// Menú del botón "+" (móvil): qué quieres añadir
+// ------------------------------------------------------------------
+
+export function openAddSheet() {
+  const dlg = openModal(`
+    <div class="modal-head"><h2>¿Qué quieres añadir?</h2>
+      <button class="icon-btn" data-close type="button" aria-label="Cerrar">${icons.x}</button></div>
+    <div class="modal-body add-sheet">
+      <button type="button" class="add-opt" data-opt="game"><span class="add-ic ic-game">${icons.trophy}</span>
+        <span><strong>Registrar partida</strong><small>Apunta una victoria o derrota</small></span></button>
+      <button type="button" class="add-opt" data-opt="new"><span class="add-ic ic-new">${icons.plus}</span>
+        <span><strong>Comandante jugado</strong><small>Añádelo a tu colección y puntúalo</small></span></button>
+      <button type="button" class="add-opt" data-opt="wish"><span class="add-ic ic-wish">${icons.sparkles}</span>
+        <span><strong>Comandante por jugar</strong><small>Guárdalo en tu lista de deseos</small></span></button>
+    </div>`);
+  dlg.querySelector('.add-sheet').addEventListener('click', (e) => {
+    const opt = e.target.closest('[data-opt]')?.dataset.opt;
+    if (opt === 'game') openGamePicker();
+    else if (opt === 'new') openCommanderForm();
+    else if (opt === 'wish') openCommanderForm(null, { wishlist: true });
+  });
+}
+
+// ------------------------------------------------------------------
 // Selector rápido: ¿con qué comandante has jugado?
 // ------------------------------------------------------------------
 
 export function openGamePicker() {
-  const all = [...store.getState().commanders].sort(
+  const all = [...store.played()].sort(
     (a, b) =>
       (a.status === 'retired') - (b.status === 'retired') ||
       (store.record(b).lastPlayed || '').localeCompare(store.record(a).lastPlayed || '') ||

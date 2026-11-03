@@ -9,6 +9,7 @@ import {
 } from './ui.js';
 import { openCommanderForm, openGameForm } from './forms.js';
 import { demoCommanders } from './demo.js';
+import * as cloud from './cloud.js';
 
 const ui = { q: '', colors: new Set(), status: 'all', fav: false };
 
@@ -71,9 +72,9 @@ const cmpWinrate = (a, b) => {
 };
 
 function filtered() {
-  const { commanders, settings } = store.getState();
+  const { settings } = store.getState();
   const q = ui.q.trim().toLowerCase();
-  return commanders
+  return store.played()
     .filter((c) => {
       if (ui.fav && !c.favorite) return false;
       if (ui.status !== 'all' && c.status !== ui.status) return false;
@@ -90,7 +91,7 @@ function filtered() {
 }
 
 function summary() {
-  const cs = store.getState().commanders;
+  const cs = store.played();
   let w = 0, t = 0;
   cs.forEach((c) => {
     const r = store.record(c);
@@ -101,8 +102,8 @@ function summary() {
 }
 
 export function renderCollection(view) {
-  const { commanders, settings } = store.getState();
-  if (!commanders.length) {
+  const { settings } = store.getState();
+  if (!store.played().length) {
     view.innerHTML = `<section class="empty fade-in">
       <div class="empty-art">${['W', 'U', 'B', 'R', 'G'].map((c, i) => `<span style="--i:${i}">${pip(c, 44)}</span>`).join('')}</div>
       <h1>Tu bóveda está vacía</h1>
@@ -229,6 +230,7 @@ export function bindCollection(view) {
 
 export function renderDetail(view, id) {
   const c = store.getCommander(id);
+  if (c?.status === 'wishlist') return navigate('#/wishlist');
   if (!c) {
     view.innerHTML = `<section class="empty"><h1>No encontrado</h1><p class="muted">Este comandante ya no existe.</p>
       <a class="btn btn-primary" href="#/">Volver a la colección</a></section>`;
@@ -389,7 +391,8 @@ export function bindDetail(view) {
 // ------------------------------------------------------------------
 
 export function renderStats(view) {
-  const { commanders, settings } = store.getState();
+  const { settings } = store.getState();
+  const commanders = store.played();
   const min = settings.minGames;
   if (!commanders.length) {
     view.innerHTML = `<section class="empty fade-in"><h1>Sin datos todavía</h1>
@@ -515,11 +518,28 @@ export function renderStats(view) {
 // Ajustes
 // ------------------------------------------------------------------
 
-export function renderSettings(view, { canInstall }) {
-  const { settings, commanders } = store.getState();
-  const totalGames = commanders.reduce((a, c) => a + c.games.length, 0);
+export function renderSettings(view) {
+  const { settings } = store.getState();
+  const played = store.played();
+  const totalGames = played.reduce((a, c) => a + c.games.length, 0);
+  const user = cloud.getUser();
+  const isCloud = store.getMode() === 'cloud' && user;
+  const initial = (user?.displayName || user?.email || '?').trim()[0].toUpperCase();
   view.innerHTML = `<section class="fade-in settings">
     <header class="page-head"><div><p class="eyebrow">Configuración</p><h1>Ajustes</h1></div></header>
+
+    ${isCloud ? `<section class="panel account-panel">
+      <h2 class="panel-title">Cuenta</h2>
+      <div class="account">
+        <span class="avatar avatar-lg">${user.photoURL ? `<img src="${esc(user.photoURL)}" alt="" referrerpolicy="no-referrer">` : esc(initial)}</span>
+        <div class="account-text"><strong>${esc(user.displayName || 'Jugador')}</strong><span class="muted small">${esc(user.email || '')}</span>
+          <span class="sync-pill" data-sync></span></div>
+        <button class="btn btn-ghost" data-action="sign-out" type="button">Cerrar sesión</button>
+      </div>
+    </section>` : `<section class="panel">
+      <h2 class="panel-title">Cuenta</h2>
+      <p class="muted small">Modo local: los datos se guardan solo en este dispositivo. Para iniciar sesión y tenerlos en todos tus dispositivos hay que configurar Firebase (instrucciones en el README del proyecto).</p>
+    </section>`}
 
     <section class="panel">
       <h2 class="panel-title">Apariencia</h2>
@@ -536,13 +556,11 @@ export function renderSettings(view, { canInstall }) {
       </div>
     </section>
 
-    ${canInstall ? `<section class="panel install-panel">
-      <div class="setting"><div><strong>Instalar CommanderVault</strong><p class="muted small">Úsala como una app nativa en tu móvil u ordenador, incluso sin conexión.</p></div>
-      <button class="btn btn-primary" data-action="install" type="button">${icons.install} Instalar</button></div></section>` : ''}
-
     <section class="panel">
       <h2 class="panel-title">Datos</h2>
-      <p class="muted small">Tus datos se guardan solo en este dispositivo (${commanders.length} comandantes, ${totalGames} partidas). Exporta una copia para pasarlos a otro dispositivo.</p>
+      <p class="muted small">${isCloud
+        ? `Tus datos se guardan en tu cuenta y se sincronizan en todos los dispositivos donde inicies sesión (${played.length} comandantes, ${store.wishlist().length} por jugar, ${totalGames} partidas).`
+        : `Tus datos se guardan solo en este dispositivo (${played.length} comandantes, ${totalGames} partidas).`} Puedes exportar una copia de seguridad cuando quieras.</p>
       <div class="setting-actions">
         <button class="btn btn-ghost" data-action="export" type="button">${icons.download} Exportar copia (.json)</button>
         <button class="btn btn-ghost" data-action="export-csv" type="button">${icons.download} Exportar partidas (.csv)</button>
@@ -550,7 +568,7 @@ export function renderSettings(view, { canInstall }) {
         <button class="btn btn-ghost" data-action="demo" type="button">${icons.sparkles} Añadir ejemplos</button>
       </div>
       <div class="danger-zone">
-        <div><strong>Borrar todo</strong><p class="muted small">Elimina todos los comandantes y partidas de este dispositivo.</p></div>
+        <div><strong>Borrar todo</strong><p class="muted small">Elimina todos los comandantes, la lista «Por jugar» y las partidas${isCloud ? ' de tu cuenta (en todos tus dispositivos)' : ' de este dispositivo'}.</p></div>
         <button class="btn btn-danger" data-action="wipe" type="button">${icons.trash} Borrar</button>
       </div>
     </section>
@@ -560,7 +578,7 @@ export function renderSettings(view, { canInstall }) {
   </section>`;
 }
 
-export function bindSettings(view, { install, applyTheme }) {
+export function bindSettings(view, { applyTheme }) {
   view.addEventListener('click', async (e) => {
     if (view.dataset.route !== 'settings') return;
     const th = e.target.closest('[data-theme-set]');
@@ -569,7 +587,11 @@ export function bindSettings(view, { install, applyTheme }) {
       return applyTheme();
     }
     const action = e.target.closest('[data-action]')?.dataset.action;
-    if (action === 'install') return install();
+    if (action === 'sign-out') {
+      const ok = await confirmDialog({ title: '¿Cerrar sesión?', message: 'Tus datos seguirán guardados en tu cuenta.', confirm: 'Cerrar sesión' });
+      if (ok) cloud.signOut();
+      return;
+    }
     if (action === 'export') {
       download(`commandervault-${todayISO()}.json`, store.exportJSON());
       return toast('Copia exportada', { icon: '✦' });
@@ -619,7 +641,7 @@ export function bindSettings(view, { install, applyTheme }) {
 
 function exportCSV() {
   const rows = [['comandante', 'compañero', 'fecha', 'resultado', 'jugadores', 'turnos', 'rivales', 'notas']];
-  store.getState().commanders.forEach((c) =>
+  store.played().forEach((c) =>
     store.sortedGames(c).forEach((g) =>
       rows.push([c.name, c.partner?.name || '', g.date, RESULT[g.result].label, g.players, g.turns || '', g.opponents, g.notes])
     )
