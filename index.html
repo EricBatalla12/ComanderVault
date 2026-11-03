@@ -8,6 +8,12 @@
   <meta name="theme-color" content="#0b0d14">
   <meta name="color-scheme" content="dark light">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CmdrVault">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -42,6 +48,10 @@
       <button class="btn btn-primary add-desktop" data-action="new" type="button">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
         Nuevo comandante
+      </button>
+      <button id="install-btn" class="btn btn-ghost btn-small install-btn" data-action="install" type="button" hidden>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        <span>Instalar app</span>
       </button>
       <a href="#/settings" class="user-chip" id="user-chip" hidden aria-label="Tu cuenta">
         <span class="avatar"></span><span class="sync-dot" aria-hidden="true"></span>

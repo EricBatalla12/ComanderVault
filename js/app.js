@@ -15,6 +15,7 @@ const view = $('#view');
 const cloudOn = cloud.isConfigured();
 let authKnown = !cloudOn; // en modo local no hay sesión que esperar
 let lastRoute = '';
+let deferredInstall = null; // evento de instalación del navegador
 let checkLocalData = false;
 
 // ---------- Tema ----------
@@ -60,7 +61,7 @@ function render() {
   else if (route === 'detail') renderDetail(view, id);
   else if (route === 'wishlist') renderWishlist(view);
   else if (route === 'stats') renderStats(view);
-  else renderSettings(view);
+  else renderSettings(view, { install: installInfo() });
   // Mantener el foco del buscador al re-pintar
   if (!changed && (focusedId === 'q' || focusedId === 'wq')) $(`#${focusedId}`)?.focus();
 
@@ -195,10 +196,50 @@ async function boot() {
 }
 boot();
 
-// La app ya no es instalable: retira el service worker y la caché de versiones anteriores
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister())).catch(() => {});
+// ---------- Instalación como app ----------
+function installInfo() {
+  const ua = navigator.userAgent;
+  return {
+    installed: matchMedia('(display-mode: standalone)').matches || navigator.standalone === true,
+    canPrompt: !!deferredInstall,
+    ios: /iphone|ipad|ipod/i.test(ua) || (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1),
+    android: /android/i.test(ua),
+    brave: !!navigator.brave,
+    mobile: /android|iphone|ipad|ipod/i.test(ua),
+  };
 }
-if (window.caches) {
-  caches.keys().then((keys) => keys.filter((k) => k.startsWith('cv-')).forEach((k) => caches.delete(k))).catch(() => {});
+
+function updateInstallUI() {
+  const { installed, canPrompt } = installInfo();
+  $('#install-btn')?.toggleAttribute('hidden', installed || !canPrompt);
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstall = e;
+  updateInstallUI();
+  if (view.dataset.route === 'settings') render();
+});
+window.addEventListener('appinstalled', () => {
+  deferredInstall = null;
+  updateInstallUI();
+  toast('¡CommanderVault instalada! Ya la tienes entre tus apps', { icon: '✦' });
+});
+
+async function install() {
+  if (!deferredInstall) return;
+  deferredInstall.prompt();
+  await deferredInstall.userChoice.catch(() => {});
+  deferredInstall = null;
+  updateInstallUI();
+  if (view.dataset.route === 'settings') render();
+}
+
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-action=install]')) install();
+});
+updateInstallUI();
+
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 }

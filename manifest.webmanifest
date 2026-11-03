@@ -1,0 +1,60 @@
+{
+  "id": "./",
+  "name": "CommanderVault",
+  "short_name": "CmdrVault",
+  "description": "Puntúa tus comandantes de Magic, guarda sus listas y lleva tus victorias y derrotas en todos tus dispositivos.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0d14",
+  "theme_color": "#0b0d14",
+  "categories": [
+    "games",
+    "entertainment",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Por jugar",
+      "url": "./#/wishlist",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Estadísticas",
+      "url": "./#/stats",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

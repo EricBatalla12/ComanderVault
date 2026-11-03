@@ -501,6 +501,13 @@ select { appearance: none; padding-right: 36px; background-image: url("data:imag
 .setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
 .panel-title + .setting { border-top: 0; padding-top: 0; }
 .install-panel .setting { border: 0; padding: 0; }
+.install-panel { border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); background: linear-gradient(135deg, var(--accent-soft), transparent 60%), var(--surface); }
+.install-panel p { margin: 6px 0; }
+.install-steps { margin: 8px 0; padding-left: 20px; color: var(--text-2); font-size: 0.9rem; display: flex; flex-direction: column; gap: 4px; }
+.install-btn[hidden] { display: none; }
+@media (max-width: 760px) {
+  .install-btn { height: 34px; padding: 0 10px; }
+}
 .setting p { margin: 2px 0 0; }
 .input-sm { width: 90px !important; text-align: center; }
 .setting-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }

@@ -40,7 +40,17 @@ Firebase es el servicio de Google que guarda las cuentas y los datos. El plan gr
 2. **Source**: `Deploy from a branch`. **Branch**: la rama con el código (por ejemplo `main`) y la carpeta `/ (root)`. Pulsa **Save**.
 3. En 1 o 2 minutos estará en <https://ericbatalla12.github.io/ComanderVault/>.
 
-Ábrela desde cualquier navegador (móvil u ordenador), inicia sesión y listo. Para tenerla a mano en el móvil, guárdala en favoritos.
+Ábrela desde cualquier navegador (móvil u ordenador) e inicia sesión.
+
+### 3. Instalarla como app
+
+- **Android**: ábrela en **Chrome** (o Samsung Internet) y pulsa **Instalar app**, o menú ⋮ → **Instalar aplicación**. Se instala como una app de verdad: en el cajón de aplicaciones y sin el icono del navegador. *Brave solo crea un acceso directo con su logo encima, por eso conviene instalarla desde Chrome; después puedes seguir usando Brave para todo lo demás.*
+- **iPhone / iPad**: ábrela en **Safari** → **Compartir** → **Añadir a pantalla de inicio**.
+- **Windows / macOS / Linux**: en **Chrome** o **Edge**, icono de instalar en la barra de direcciones.
+
+Ajustes → **App** muestra las instrucciones adecuadas para cada dispositivo.
+
+> Al cambiar archivos de la app, sube `VERSION` en `sw.js` para que los dispositivos con la app instalada reciban la actualización.
 
 ### Datos de antes de iniciar sesión
 
@@ -73,7 +83,8 @@ js/scryfall.js        · búsqueda en la API de Scryfall
 js/mana.js            · símbolos de maná y combinaciones de color
 js/demo.js            · datos de ejemplo
 firestore.rules       · reglas de seguridad de la base de datos
-sw.js                 · retira el service worker de versiones antiguas
+manifest.webmanifest  · datos para instalarla como app
+sw.js                 · service worker (instalación y uso sin conexión)
 ```
 
 En Firestore, cada comandante es un documento en `users/{uid}/commanders/{id}`, con sus partidas dentro.

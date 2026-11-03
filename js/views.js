@@ -518,7 +518,34 @@ export function renderStats(view) {
 // Ajustes
 // ------------------------------------------------------------------
 
-export function renderSettings(view) {
+function installPanel(i) {
+  if (!i || i.installed) return '';
+  let body;
+  if (i.canPrompt) {
+    body = `<div class="setting"><div><strong>Instalar CommanderVault</strong>
+        <p class="muted small">Tenla como una app más: con su icono, a pantalla completa y abriendo sin conexión.</p></div>
+      <button class="btn btn-primary" data-action="install" type="button">${icons.download} Instalar app</button></div>`;
+  } else if (i.ios) {
+    body = `<strong>Instalar en iPhone / iPad</strong>
+      <ol class="install-steps"><li>Abre esta web en <b>Safari</b>.</li>
+        <li>Pulsa <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</li>
+        <li>Elige <b>Añadir a pantalla de inicio</b> → <b>Añadir</b>.</li></ol>`;
+  } else if (i.android) {
+    body = `<strong>Instalar en Android</strong>
+      <p class="muted small">${i.brave ? 'Brave no instala la app de verdad: solo crea un acceso directo con su icono encima.' : 'Este navegador no permite instalar la app de verdad.'}
+        Para tenerla como una app normal (sin el icono del navegador y en tu cajón de aplicaciones):</p>
+      <ol class="install-steps"><li>Abre esta web en <b>Chrome</b>.</li>
+        <li>Pulsa <b>Instalar app</b> (arriba) o menú <b>⋮</b> → <b>Instalar aplicación</b>.</li></ol>
+      <p class="muted small">Después puedes seguir usando ${i.brave ? 'Brave' : 'tu navegador'} para todo lo demás.</p>
+      <button class="btn btn-ghost btn-small" data-action="copy-link" type="button">${icons.copy} Copiar enlace</button>`;
+  } else {
+    body = `<strong>Instalar en el ordenador</strong>
+      <p class="muted small">Ábrela en <b>Chrome</b> o <b>Edge</b> y pulsa el icono de instalar en la barra de direcciones (o menú → <b>Instalar CommanderVault</b>).</p>`;
+  }
+  return `<section class="panel install-panel"><h2 class="panel-title">${icons.download} App</h2>${body}</section>`;
+}
+
+export function renderSettings(view, { install } = {}) {
   const { settings } = store.getState();
   const played = store.played();
   const totalGames = played.reduce((a, c) => a + c.games.length, 0);
@@ -542,6 +569,8 @@ export function renderSettings(view) {
       <h2 class="panel-title">Cuenta</h2>
       <p class="muted small">Modo local: los datos se guardan solo en este dispositivo. Para iniciar sesión y tenerlos en todos tus dispositivos hay que configurar Firebase (instrucciones en el README del proyecto).</p>
     </section>`}
+
+    ${installPanel(install)}
 
     <section class="panel">
       <h2 class="panel-title">Apariencia</h2>
@@ -589,6 +618,16 @@ export function bindSettings(view, { applyTheme }) {
       return applyTheme();
     }
     const action = e.target.closest('[data-action]')?.dataset.action;
+    if (action === 'copy-link') {
+      const link = location.href.split('#')[0];
+      try {
+        await navigator.clipboard.writeText(link);
+        toast('Enlace copiado: pégalo en Chrome', { icon: '✦' });
+      } catch {
+        toast(link);
+      }
+      return;
+    }
     if (action === 'sign-out') {
       const ok = await confirmDialog({ title: '¿Cerrar sesión?', message: 'Tus datos seguirán guardados en tu cuenta.', confirm: 'Cerrar sesión' });
       if (ok) cloud.signOut();
