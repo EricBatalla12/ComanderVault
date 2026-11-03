@@ -105,6 +105,8 @@ export function authErrorMessage(e) {
     'auth/popup-closed-by-user': 'Has cerrado la ventana de Google antes de terminar.',
     'auth/cancelled-popup-request': 'Has cerrado la ventana de Google antes de terminar.',
     'auth/unauthorized-domain': 'Este dominio no está autorizado en Firebase (Authentication → Settings → Authorized domains).',
+    'auth/api-key-not-valid.-please-pass-a-valid-api-key.': 'La clave de Firebase (apiKey) no es válida: revisa js/firebase-config.js.',
+    'auth/invalid-api-key': 'La clave de Firebase (apiKey) no es válida: revisa js/firebase-config.js.',
     'auth/operation-not-allowed': 'Este método de acceso no está activado en Firebase (Authentication → Sign-in method).',
   };
   return map[e?.code] || `No se pudo completar (${e?.code || e?.message || 'error'}).`;
