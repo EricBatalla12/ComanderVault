@@ -117,27 +117,123 @@ export function authErrorMessage(e) {
 const json = (c) => JSON.stringify(c);
 const colRef = () => fb.collection(db, 'users', currentUser.uid, 'commanders');
 
-function startSync(user) {
-  store.useCloud();
-  synced.clear();
+let lastError = null;
+let retryTimer = null;
+let firstSnapshot = true;
+
+/** Explicación legible del último error de sincronización. */
+export function getSyncError() {
+  if (!lastError) return '';
+  const code = lastError.code || '';
+  const msg = lastError.message || '';
+  if (code === 'permission-denied')
+    return 'Firestore ha rechazado los datos. Publica las reglas de seguridad en Firebase → Firestore Database → Reglas.';
+  if (/database.*does not exist|not-found/i.test(code + ' ' + msg))
+    return 'La base de datos no existe. Créala en Firebase → Firestore Database → Crear base de datos (con el ID «(default)»).';
+  if (code === 'failed-precondition')
+    return `Firestore no está listo (${msg}). Comprueba que la base de datos está creada.`;
+  if (code === 'unavailable') return 'Sin conexión con Firebase. Se reintentará automáticamente.';
+  if (code === 'resource-exhausted') return 'Se ha superado el límite diario gratuito de Firebase. Se reintentará mañana.';
+  return `${code || 'error'}: ${msg}`;
+}
+
+// Copia local de los cambios que la nube ha rechazado, para no perderlos al recargar
+const pendingKey = () => `commandervault:pending:${currentUser.uid}`;
+const loadPending = () => {
+  try {
+    return JSON.parse(localStorage.getItem(pendingKey()) || '{}');
+  } catch {
+    return {};
+  }
+};
+const savePending = (p) => {
+  try {
+    Object.keys(p).length ? localStorage.setItem(pendingKey(), JSON.stringify(p)) : localStorage.removeItem(pendingKey());
+  } catch {}
+};
+
+function fail(err) {
+  console.error('Error de sincronización', err);
+  lastError = err;
+  setSync('error');
+  scheduleRetry();
+}
+
+function scheduleRetry() {
+  clearTimeout(retryTimer);
+  retryTimer = setTimeout(retry, 15000);
+}
+
+function retry() {
+  clearTimeout(retryTimer);
+  if (!currentUser || syncState !== 'error') return;
+  listen();
+}
+/** Reintento manual (botón en Ajustes). */
+export function retryNow() {
+  if (!currentUser) return;
+  lastError = null;
   setSync('syncing');
+  listen();
+}
+
+window.addEventListener('online', retry);
+document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && retry());
+
+function listen() {
+  unsubSnapshot?.();
   unsubSnapshot = fb.onSnapshot(
     colRef(),
     { includeMetadataChanges: true },
     (snap) => {
-      const list = snap.docs.map((d) => store.normalizeCommander({ ...d.data(), id: d.id }));
+      let list = snap.docs.map((d) => store.normalizeCommander({ ...d.data(), id: d.id }));
       synced.clear();
       list.forEach((c) => synced.set(c.id, json(c)));
+      if (lastError) lastError = null;
+
+      // Recuperar cambios que no llegaron a guardarse en la nube
+      const pending = loadPending();
+      const ids = Object.keys(pending);
+      if (ids.length && !snap.metadata.fromCache) {
+        const byId = new Map(list.map((c) => [c.id, c]));
+        for (const id of ids) {
+          const local = pending[id];
+          if (local === null) byId.delete(id);
+          else if (!byId.has(id) || byId.get(id).updatedAt <= local.updatedAt) byId.set(id, store.normalizeCommander(local));
+          else Reflect.deleteProperty(pending, id); // otro dispositivo tiene una versión más nueva
+        }
+        savePending(pending);
+        list = [...byId.values()];
+        store.applyRemote(list);
+        pushChanges(list);
+        firstSnapshot = false;
+        return;
+      }
+
       // Solo re-pintamos si cambian los datos, no por metadatos
-      if (!snap.metadata.hasPendingWrites || !store.getState().ready) store.applyRemote(list);
+      if (!snap.metadata.hasPendingWrites || firstSnapshot) store.applyRemote(list);
+      firstSnapshot = false;
+      if (syncState === 'error' && lastError) return;
       setSync(snap.metadata.hasPendingWrites ? 'syncing' : snap.metadata.fromCache ? 'offline' : 'idle');
     },
     (err) => {
-      console.error('Error de sincronización', err);
-      setSync('error');
-      if (!store.getState().ready) store.applyRemote([]);
+      if (!store.getState().ready) {
+        // Mostrar al menos lo que haya pendiente en este dispositivo
+        const pending = Object.values(loadPending()).filter(Boolean);
+        store.applyRemote(pending);
+      }
+      fail(err);
     }
   );
+}
+
+function startSync() {
+  store.useCloud();
+  synced.clear();
+  lastError = null;
+  firstSnapshot = true;
+  setSync('syncing');
+  listen();
   unsubStore = store.subscribe((state, { remote }) => {
     if (remote || !currentUser || !state.ready) return;
     pushChanges(state.commanders);
@@ -145,6 +241,7 @@ function startSync(user) {
 }
 
 function stopSync() {
+  clearTimeout(retryTimer);
   unsubSnapshot?.();
   unsubStore?.();
   unsubSnapshot = unsubStore = null;
@@ -158,28 +255,51 @@ function pushChanges(commanders) {
     ids.add(c.id);
     const j = json(c);
     if (synced.get(c.id) !== j) {
-      ops.push({ type: 'set', c });
+      ops.push({ type: 'set', c, prev: synced.get(c.id) });
       synced.set(c.id, j);
     }
   }
   for (const id of [...synced.keys()]) {
     if (!ids.has(id)) {
-      ops.push({ type: 'delete', id });
+      ops.push({ type: 'delete', id, prev: synced.get(id) });
       synced.delete(id);
     }
   }
   if (!ops.length) return;
-  setSync('syncing');
+  if (syncState !== 'error') setSync('syncing');
+
+  // Guardar copia local hasta que la nube confirme
+  const pending = loadPending();
+  ops.forEach((op) => (op.type === 'set' ? (pending[op.c.id] = op.c) : (pending[op.id] = null)));
+  savePending(pending);
+
   // Firestore admite 500 operaciones por lote
   for (let i = 0; i < ops.length; i += 450) {
+    const chunk = ops.slice(i, i + 450);
     const batch = fb.writeBatch(db);
-    ops.slice(i, i + 450).forEach((op) => {
+    chunk.forEach((op) => {
       const ref = fb.doc(colRef(), op.type === 'set' ? op.c.id : op.id);
       op.type === 'set' ? batch.set(ref, JSON.parse(json(op.c))) : batch.delete(ref);
     });
-    batch.commit().catch((e) => {
-      console.error('No se pudo guardar en la nube', e);
-      setSync('error');
-    });
+    batch
+      .commit()
+      .then(() => {
+        const p = loadPending();
+        chunk.forEach((op) => {
+          const id = op.type === 'set' ? op.c.id : op.id;
+          const cur = p[id];
+          if (op.type === 'set' ? cur && json(cur) === json(op.c) : cur === null) delete p[id];
+        });
+        savePending(p);
+        if (syncState === 'error' && !lastError) setSync('idle');
+      })
+      .catch((e) => {
+        // Volver a marcar como no sincronizado para reintentarlo
+        chunk.forEach((op) => {
+          if (op.type === 'set') op.prev === undefined ? synced.delete(op.c.id) : synced.set(op.c.id, op.prev);
+          else synced.set(op.id, op.prev);
+        });
+        fail(e);
+      });
   }
 }

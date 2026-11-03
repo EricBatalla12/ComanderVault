@@ -809,6 +809,12 @@ body.auth-mode #view { padding-bottom: 32px; }
 .sync-pill[data-state='offline']::before { background: var(--muted); }
 .sync-pill[data-state='error']::before { background: var(--loss); }
 .sync-pill:empty { display: none; }
+.sync-error {
+  display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 12px 14px; border-radius: 12px; font-size: 0.86rem;
+  background: var(--loss-soft); color: var(--text); border: 1px solid color-mix(in srgb, var(--loss) 35%, transparent);
+}
+.sync-error[hidden] { display: none; }
+.sync-error span { flex: 1; }
 
 /* =========================================================
    Por jugar

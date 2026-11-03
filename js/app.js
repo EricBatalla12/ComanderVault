@@ -103,6 +103,11 @@ function updateSyncUI() {
     el.textContent = SYNC_TEXT[s] || '';
     el.dataset.state = s;
   });
+  const detail = s === 'error' ? cloud.getSyncError() : '';
+  $$('[data-sync-error]').forEach((el) => {
+    el.hidden = !detail;
+    el.querySelector('span').textContent = detail;
+  });
 }
 cloud.onSyncState(updateSyncUI);
 
@@ -143,6 +148,7 @@ document.addEventListener('click', (e) => {
   else if (act === 'new-wish') openCommanderForm(null, { wishlist: true });
   else if (act === 'quick-log') openGamePicker();
   else if (act === 'add-sheet') openAddSheet();
+  else if (act === 'sync-retry') cloud.retryNow();
 });
 
 // Atajos de teclado: "n" nuevo comandante, "p" añadir a Por jugar, "/" buscar

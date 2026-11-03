@@ -536,6 +536,8 @@ export function renderSettings(view) {
           <span class="sync-pill" data-sync></span></div>
         <button class="btn btn-ghost" data-action="sign-out" type="button">Cerrar sesión</button>
       </div>
+      <div class="sync-error" data-sync-error hidden><span></span>
+        <button class="btn btn-small btn-ghost" data-action="sync-retry" type="button">Reintentar</button></div>
     </section>` : `<section class="panel">
       <h2 class="panel-title">Cuenta</h2>
       <p class="muted small">Modo local: los datos se guardan solo en este dispositivo. Para iniciar sesión y tenerlos en todos tus dispositivos hay que configurar Firebase (instrucciones en el README del proyecto).</p>
