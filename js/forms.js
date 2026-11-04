@@ -4,6 +4,8 @@ import { esc, $, $$, uid, debounce, normalizeUrl, siteOf, todayISO, isSafeUrl, r
 import { COLORS, pip, pips, comboName, sortColors } from './mana.js';
 import { searchCommanders } from './scryfall.js';
 import * as store from './store.js';
+import { celebrate, vibrate } from './fx.js';
+import { openRoulette } from './roulette.js';
 import { openModal, closeModal, toast, icons, starsInput, bindStarInputs, artLayer, BRACKETS, STATUS, navigate } from './ui.js';
 
 // ------------------------------------------------------------------
@@ -393,7 +395,11 @@ export function openGameForm(commander, existing, presetResult) {
       linkId: form.linkId?.value || '',
     };
     if (existing) store.updateGame(commander.id, { ...existing, ...data });
-    else store.addGame(commander.id, data);
+    else {
+      const at = form.querySelector('[type=submit]').getBoundingClientRect();
+      store.addGame(commander.id, data);
+      if (data.result === 'win') celebrate(at, commander.colors);
+    }
     closeModal();
     toast(existing ? 'Partida actualizada' : data.result === 'win' ? '¡Victoria registrada!' : 'Partida registrada', {
       icon: data.result === 'win' ? '🏆' : '✦',
@@ -416,12 +422,15 @@ export function openAddSheet() {
         <span><strong>Comandante jugado</strong><small>Añádelo a tu colección y puntúalo</small></span></button>
       <button type="button" class="add-opt" data-opt="wish"><span class="add-ic ic-wish">${icons.sparkles}</span>
         <span><strong>Comandante por jugar</strong><small>Guárdalo en tu lista de deseos</small></span></button>
+      <button type="button" class="add-opt" data-opt="roulette"><span class="add-ic ic-dice">${icons.dice}</span>
+        <span><strong>¿A qué juego hoy?</strong><small>Deja que el azar elija comandante</small></span></button>
     </div>`);
   dlg.querySelector('.add-sheet').addEventListener('click', (e) => {
     const opt = e.target.closest('[data-opt]')?.dataset.opt;
     if (opt === 'game') openGamePicker();
     else if (opt === 'new') openCommanderForm();
     else if (opt === 'wish') openCommanderForm(null, { wishlist: true });
+    else if (opt === 'roulette') openRoulette();
   });
 }
 
@@ -472,7 +481,10 @@ export function openGamePicker() {
     const c = store.getCommander(item.dataset.id);
     const r = e.target.closest('[data-r]')?.dataset.r;
     if (!r) return openGameForm(c);
+    const at = e.target.closest('[data-r]').getBoundingClientRect();
     const g = store.addGame(c.id, { result: r });
+    if (r === 'win') celebrate(at, c.colors);
+    else vibrate(30);
     closeModal();
     toast(`${r === 'win' ? 'Victoria' : 'Derrota'} con ${c.name}`, {
       icon: r === 'win' ? '🏆' : '💀',

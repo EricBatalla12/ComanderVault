@@ -1,6 +1,6 @@
 // Service worker: permite instalar la app y abrirla sin conexión.
 // Al cambiar archivos de la app, sube VERSION para que los dispositivos se actualicen.
-const VERSION = 'v2.0.0';
+const VERSION = 'v2.1.0';
 const SHELL = `cv-shell-${VERSION}`;
 const RUNTIME = 'cv-runtime';
 
@@ -22,6 +22,9 @@ const ASSETS = [
   './js/utils.js',
   './js/scryfall.js',
   './js/demo.js',
+  './js/fx.js',
+  './js/roulette.js',
+  './js/achievements.js',
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',

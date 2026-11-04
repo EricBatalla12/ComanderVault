@@ -10,6 +10,10 @@ import {
 } from './views.js';
 import { renderWishlist, bindWishlist } from './wishlist.js';
 import { renderLogin, renderSplash, renderInitError } from './auth.js';
+import { openRoulette } from './roulette.js';
+import { bindTilt } from './fx.js';
+import { computeAchievements } from './achievements.js';
+import { COLOR_INFO, sortColors } from './mana.js';
 
 const view = $('#view');
 const cloudOn = cloud.isConfigured();
@@ -75,6 +79,31 @@ function render() {
   updateSyncUI();
   const c = id && store.getCommander(id);
   document.title = c ? `${c.name} · CommanderVault` : 'CommanderVault';
+  setAmbient(route === 'detail' ? c : null);
+}
+
+/** Tiñe el fondo de la página con los colores del comandante abierto. */
+function setAmbient(c) {
+  const body = document.body;
+  if (!c) return body.classList.remove('has-ambient');
+  const cols = sortColors(c.colors);
+  const hex = (k) => COLOR_INFO[k]?.hex || COLOR_INFO.C.hex;
+  body.style.setProperty('--amb1', hex(cols[0] || 'C'));
+  body.style.setProperty('--amb2', hex(cols.at(-1) || cols[0] || 'C'));
+  body.classList.add('has-ambient');
+}
+
+// ---------- Logros: aviso al desbloquear uno ----------
+let unlocked = null;
+function checkAchievements({ remote }) {
+  const st = store.getState();
+  if (!st.ready) return;
+  const done = new Set(computeAchievements(store.played()).filter((a) => a.done).map((a) => a.id));
+  if (unlocked && !remote) {
+    const fresh = computeAchievements(store.played()).filter((a) => a.done && !unlocked.has(a.id));
+    if (fresh.length <= 2) fresh.forEach((a) => setTimeout(() => toast(`Logro desbloqueado: ${a.name}`, { icon: a.icon, tone: 'gold' }), 600));
+  }
+  unlocked = done;
 }
 
 // ---------- Usuario y sincronización ----------
@@ -140,6 +169,7 @@ bindCollection(view);
 bindDetail(view);
 bindWishlist(view);
 bindSettings(view, { applyTheme });
+bindTilt(document.body);
 
 document.addEventListener('click', (e) => {
   const a = e.target.closest('[data-action]');
@@ -150,6 +180,7 @@ document.addEventListener('click', (e) => {
   else if (act === 'quick-log') openGamePicker();
   else if (act === 'add-sheet') openAddSheet();
   else if (act === 'sync-retry') cloud.retryNow();
+  else if (act === 'roulette') openRoulette();
 });
 
 // Atajos de teclado: "n" nuevo comandante, "p" añadir a Por jugar, "/" buscar
@@ -162,6 +193,9 @@ document.addEventListener('keydown', (e) => {
   } else if (e.key === 'p') {
     e.preventDefault();
     openCommanderForm(null, { wishlist: true });
+  } else if (e.key === 'r') {
+    e.preventDefault();
+    openRoulette();
   } else if (e.key === '/' && search) {
     e.preventDefault();
     search.focus();
@@ -170,6 +204,7 @@ document.addEventListener('keydown', (e) => {
 
 store.subscribe((state, { remote }) => {
   render();
+  checkAchievements({ remote });
   if (remote && checkLocalData && cloud.getUser()) {
     checkLocalData = false;
     offerLocalImport(cloud.getUser());
@@ -179,12 +214,14 @@ window.addEventListener('hashchange', render);
 
 async function boot() {
   render();
+  checkAchievements({ remote: true });
   if (!cloudOn) return;
   try {
     await cloud.init((user) => {
       authKnown = true;
       if (user) checkLocalData = true;
       else store.useCloud(); // sin sesión: memoria vacía
+      unlocked = null;
       lastRoute = '';
       view.dataset.route = '';
       render();

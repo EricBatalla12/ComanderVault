@@ -886,3 +886,178 @@ body.auth-mode #view { padding-bottom: 32px; }
   .modal-foot .foot-left { flex: 1 1 100%; }
   .modal-foot:has(.foot-left) { flex-wrap: wrap; }
 }
+
+
+/* =========================================================
+   Efectos: rareza, holográfico, carga de imágenes
+   ========================================================= */
+.art img, .hero-art img, .preview-art img, .thumb-art img { opacity: 0; transition: opacity 0.5s ease, transform 0.6s cubic-bezier(.2,.8,.2,1); }
+.art img.ld, .hero-art img.ld, .preview-art img.ld, .thumb-art img.ld { opacity: 1; }
+.art:has(img:not(.ld))::after, .thumb-art:has(img:not(.ld))::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.14) 50%, transparent 70%);
+  background-size: 250% 100%; animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+
+.cmd-card { transform-style: preserve-3d; }
+.cmd-card.tilting {
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-4px);
+  transition: transform 0.08s linear, box-shadow 0.25s;
+}
+.holo {
+  position: absolute; inset: 0; z-index: 3; pointer-events: none; border-radius: inherit; opacity: 0;
+  mix-blend-mode: color-dodge; transition: opacity 0.35s;
+  background:
+    radial-gradient(circle at var(--mx, 50%) var(--my, 30%), rgba(255, 255, 255, 0.32), transparent 42%),
+    linear-gradient(115deg, transparent 18%, rgba(255, 60, 160, 0.2) 34%, rgba(40, 255, 210, 0.2) 50%, rgba(255, 230, 40, 0.2) 66%, transparent 82%);
+  background-size: 100% 100%, 260% 260%;
+  background-position: center, var(--mx, 50%) var(--my, 50%);
+}
+.rar-common .holo, .rar-uncommon .holo { background: radial-gradient(circle at var(--mx, 50%) var(--my, 30%), rgba(255, 255, 255, 0.28), transparent 45%); }
+.tilting .holo { opacity: 0.85; }
+.rar-mythic .holo { opacity: 0.32; animation: foil 7s linear infinite; }
+.rar-mythic.tilting .holo { opacity: 0.9; animation: none; }
+@keyframes foil { 0% { background-position: center, 0% 0%; } 50% { background-position: center, 100% 100%; } 100% { background-position: center, 0% 0%; } }
+
+.cmd-card.rar-uncommon { box-shadow: 0 0 0 1px rgba(205, 214, 230, 0.32), var(--shadow); }
+.cmd-card.rar-rare { box-shadow: 0 0 0 1px rgba(245, 212, 142, 0.6), 0 0 22px -10px rgba(245, 212, 142, 0.8), var(--shadow); }
+.cmd-card.rar-mythic { box-shadow: 0 0 0 1px rgba(255, 150, 70, 0.8), 0 0 30px -8px rgba(255, 110, 40, 0.75), var(--shadow); }
+
+.gem { display: inline-grid; place-items: center; }
+.gem svg { width: 15px; height: 15px; fill: var(--g); stroke: rgba(0, 0, 0, 0.55); stroke-width: 1.4; stroke-linejoin: round; filter: drop-shadow(0 0 4px var(--g)); }
+.gem-common { --g: #2b2b33; }
+.gem-uncommon { --g: #c9d3e2; }
+.gem-rare { --g: #f0c75e; }
+.gem-mythic { --g: #ff7a2f; }
+.gem-common svg { stroke: rgba(255, 255, 255, 0.5); filter: none; }
+.rar-badge.rar-uncommon { color: #e2e8f0; border-color: rgba(205, 214, 230, 0.5); }
+.rar-badge.rar-rare { color: #ffe3a3; border-color: rgba(245, 212, 142, 0.7); }
+.rar-badge.rar-mythic { color: #ffc29a; border-color: rgba(255, 130, 60, 0.8); box-shadow: 0 0 14px -4px rgba(255, 110, 40, 0.8); }
+.rar-badge.rar-common { display: none; }
+
+.hero-card { transform-style: preserve-3d; }
+.hero-card .holo { inset: 0 0 auto 0; border-radius: 4.75% / 3.5%; z-index: 2; height: auto; aspect-ratio: 488 / 680; transform: perspective(900px) rotateY(8deg) rotateX(2deg); }
+.hero-card.tilting img:not(.hero-card-partner), .hero-card.tilting .holo { transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) scale(1.02); transition: transform 0.08s linear; }
+.hero-card.rar-mythic img:not(.hero-card-partner) { box-shadow: 0 30px 50px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 150, 70, 0.7), 0 0 40px -6px rgba(255, 110, 40, 0.6); }
+.hero-card.rar-rare img:not(.hero-card-partner) { box-shadow: 0 30px 50px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(245, 212, 142, 0.6), 0 0 34px -8px rgba(245, 212, 142, 0.6); }
+
+.fx-canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 1000; }
+
+body::before { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0; transition: opacity 0.6s ease;
+  background:
+    radial-gradient(900px 600px at 10% -5%, color-mix(in srgb, var(--amb1, transparent) 30%, transparent), transparent 70%),
+    radial-gradient(800px 600px at 95% 15%, color-mix(in srgb, var(--amb2, transparent) 24%, transparent), transparent 70%);
+}
+body.has-ambient::before { opacity: 1; }
+
+.toast.gold { background: linear-gradient(135deg, #f8dc9c, #e2b45e); color: #1c1406; }
+
+/* =========================================================
+   Ruleta
+   ========================================================= */
+.roulette-btn .icon { width: 20px; height: 20px; }
+.ic-dice { background: color-mix(in srgb, var(--draw) 16%, transparent); color: var(--draw); }
+.roulette { display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
+.roulette-opts { justify-content: center; }
+.roulette-opts .chip { height: 32px; font-size: 0.82rem; }
+.roulette-stage { perspective: 1000px; padding: 6px; }
+.roulette-card {
+  position: relative; width: min(230px, 58vw); aspect-ratio: 5 / 7; border-radius: 16px; overflow: hidden; isolation: isolate;
+  background: var(--surface-2); box-shadow: var(--shadow-lg); border: 1px solid var(--border-strong);
+}
+.roulette-card .art img { opacity: 1; transition: none; }
+.roulette-card .art::after { display: none; }
+.roulette-name {
+  position: absolute; inset: auto 0 0; z-index: 2; padding: 40px 12px 14px; color: #fff;
+  background: linear-gradient(180deg, transparent, rgba(5, 6, 12, 0.92));
+  font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; text-shadow: 0 2px 8px rgba(0,0,0,.6);
+}
+.roulette-card.rolling { animation: rl-shake 0.14s linear infinite; }
+.roulette-card.rolling .roulette-name { filter: blur(0.6px); }
+@keyframes rl-shake { 0%, 100% { transform: translateY(0) rotate(0); } 25% { transform: translateY(-2px) rotate(-0.6deg); } 75% { transform: translateY(2px) rotate(0.6deg); } }
+.roulette-card.landed { animation: rl-land 0.7s cubic-bezier(.2,.9,.25,1.2); box-shadow: 0 0 0 2px var(--accent), 0 0 50px -6px var(--accent), var(--shadow-lg); }
+.roulette-card.landed .holo { opacity: 0.45; animation: foil 5s linear infinite; }
+@keyframes rl-land { 0% { transform: scale(0.9) rotateY(-25deg); } 60% { transform: scale(1.05) rotateY(4deg); } 100% { transform: none; } }
+.card-back {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(226, 180, 94, 0.22), transparent 55%),
+    repeating-conic-gradient(from 0deg at 50% 42%, rgba(255,255,255,.03) 0 10deg, transparent 10deg 20deg),
+    linear-gradient(160deg, #241d48, #0b0d14);
+  box-shadow: inset 0 0 0 8px #15121f, inset 0 0 0 10px rgba(226, 180, 94, 0.55);
+  font-family: var(--font-display); color: var(--accent-2); letter-spacing: 0.08em; font-size: 0.85rem;
+}
+.card-back img { filter: drop-shadow(0 8px 20px rgba(226, 180, 94, 0.45)); animation: float 3s ease-in-out infinite; }
+.roulette-result { min-height: 60px; display: flex; flex-direction: column; align-items: center; }
+.rl-picked { display: flex; flex-direction: column; align-items: center; gap: 6px; animation: fadeUp 0.4s ease both; }
+.rl-picked h3 { font-family: var(--font-display); font-size: 1.35rem; }
+.rl-picked p { margin: 0; }
+.rl-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 8px; }
+.roulette-spin { width: min(320px, 100%); }
+.roulette-spin:disabled { opacity: 0.6; }
+
+/* =========================================================
+   Rivales y logros
+   ========================================================= */
+.rival-highlights { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.rival-hl { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); border-left: 3px solid var(--border-strong); min-width: 0; }
+.rival-hl > span { font-size: 1.5rem; }
+.rival-hl div { display: flex; flex-direction: column; min-width: 0; }
+.rival-hl strong { font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rival-hl small { font-size: 0.72rem; color: var(--muted); }
+.rival-hl.nemesis { border-left-color: var(--loss); }
+.rival-hl.victim { border-left-color: var(--win); }
+.rival-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.rival { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) 42px 30px; gap: 10px; align-items: center; font-variant-numeric: tabular-nums; outline: none; }
+.rival-name { font-size: 0.88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rival b { text-align: right; font-size: 0.88rem; }
+.rival small { text-align: right; }
+.rival[data-tip]:hover::after { left: 60%; }
+
+.achievements { margin-top: 18px; }
+.ach-count { font-size: 0.9rem; color: var(--muted); }
+.ach-count b { font-size: 1.3rem; color: var(--accent); }
+.ach-progress { height: 6px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+.ach-progress span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--violet), var(--accent)); transition: width 0.8s ease; }
+.ach-grid { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.ach { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border); }
+.ach-medal {
+  flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; font-size: 1.4rem;
+  background: var(--surface-3); filter: grayscale(1); opacity: 0.45;
+}
+.ach-text { min-width: 0; flex: 1; }
+.ach-text strong { display: block; font-size: 0.9rem; }
+.ach-text small { display: block; font-size: 0.75rem; color: var(--muted); }
+.ach-bar { height: 4px; margin-top: 6px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+.ach-bar span { display: block; height: 100%; background: var(--muted); border-radius: 99px; }
+.ach-num { margin-top: 2px; font-variant-numeric: tabular-nums; }
+.ach.done { border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: linear-gradient(135deg, var(--accent-soft), transparent 70%), var(--surface-2); }
+.ach.done .ach-medal {
+  filter: none; opacity: 1;
+  background: radial-gradient(circle at 35% 30%, #fff3c4, #e8bd63 55%, #9a6a14);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.14), 0 8px 20px -8px var(--accent);
+}
+
+@media (max-width: 760px) {
+  .roulette-btn { width: 44px; padding: 0; flex: none; }
+  .roulette-btn span { display: none; }
+  .rival-highlights { grid-template-columns: 1fr; }
+  .ach-grid { grid-template-columns: 1fr; }
+  .achievements { margin-top: 14px; }
+}
+
+.rivals-panel { grid-column: 1 / -1; }
+.rivals-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 24px; align-items: start; }
+.rivals-body .rival-highlights { grid-template-columns: 1fr; margin: 0; }
+.rivals-body .rival-list:only-child { grid-column: 1 / -1; }
+.roulette-spin { margin-top: 2px; }
+@media (max-width: 760px) {
+  .rivals-body { grid-template-columns: 1fr; gap: 14px; }
+}
+.roulette > * { flex-shrink: 0; }
+@media (max-width: 760px) {
+  .roulette { gap: 12px; }
+  .roulette-card { width: min(190px, 48vw); }
+  .roulette-opts .chip { height: 30px; padding: 0 10px; font-size: 0.78rem; }
+}

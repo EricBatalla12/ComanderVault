@@ -10,6 +10,8 @@ import {
 import { openCommanderForm, openGameForm } from './forms.js';
 import { demoCommanders } from './demo.js';
 import * as cloud from './cloud.js';
+import { celebrate, vibrate, countUp, rarity } from './fx.js';
+import { computeAchievements, computeRivals } from './achievements.js';
 
 const ui = { q: '', colors: new Set(), status: 'all', fav: false };
 
@@ -25,10 +27,15 @@ const RESULT = {
 // Acciones compartidas
 // ------------------------------------------------------------------
 
-export function quickGame(id, result) {
+export function quickGame(id, result, origin) {
   const c = store.getCommander(id);
+  const at = origin?.getBoundingClientRect?.(); // medir antes de que la lista se reordene
   const g = store.addGame(id, { result });
-  toast(`${RESULT[result].label} con ${c.name}`, {
+  if (result === 'win') celebrate(at, c.colors);
+  else vibrate(30);
+  const st = store.record(store.getCommander(id)).streak;
+  const streakMsg = result === 'win' && st?.type === 'win' && st.n >= 3 ? ` · ¡Racha de ${st.n}! 🔥` : '';
+  toast(`${RESULT[result].label} con ${c.name}${streakMsg}`, {
     icon: result === 'win' ? '🏆' : '💀',
     undo: () => store.removeGame(id, g.id),
   });
@@ -122,10 +129,13 @@ export function renderCollection(view) {
         <p class="eyebrow">Tu bóveda</p>
         <h1>Colección</h1>
       </div>
-      <div class="head-stats">
-        <div><strong>${s.count}</strong><span>comandantes</span></div>
-        <div><strong>${s.games}</strong><span>partidas</span></div>
-        <div><strong>${s.games ? pct(s.wr) : '—'}</strong><span>winrate</span></div>
+      <div class="head-actions">
+        <div class="head-stats">
+          <div><strong>${s.count}</strong><span>comandantes</span></div>
+          <div><strong>${s.games}</strong><span>partidas</span></div>
+          <div><strong>${s.games ? pct(s.wr) : '—'}</strong><span>winrate</span></div>
+        </div>
+        ${s.count >= 2 ? `<button class="btn btn-ghost roulette-btn" data-action="roulette" type="button" title="Elegir comandante al azar">${icons.dice}<span>¿A qué juego?</span></button>` : ''}
       </div>
     </header>
 
@@ -215,7 +225,7 @@ export function bindCollection(view) {
     if (!card) return;
     const id = card.dataset.id;
     if (action === 'fav') return toggleFav(id);
-    if (action === 'quick-win') return quickGame(id, 'win');
+    if (action === 'quick-win') return quickGame(id, 'win', t.closest('[data-action]'));
     if (action === 'quick-loss') return quickGame(id, 'loss');
     navigate(`#/c/${id}`);
   });
@@ -248,7 +258,8 @@ export function renderDetail(view, id) {
       <div class="hero-bg">${artLayer(c, 'hero-art')}</div>
       <div class="hero-inner">
         <a href="#/" class="icon-btn hero-back" aria-label="Volver">${icons.back}</a>
-        <div class="hero-card">
+        <div class="hero-card rar-${rarity(c.rating).key}">
+          <div class="holo"></div>
           ${bigImage ? `<img src="${esc(bigImage)}" alt="${esc(c.name)}" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('noimg');this.remove()">` : ''}
           ${c.partner?.image ? `<img class="hero-card-partner" src="${esc(c.partner.image)}" alt="${esc(c.partner.name)}" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}
         </div>
@@ -258,6 +269,7 @@ export function renderDetail(view, id) {
           ${c.typeLine ? `<p class="hero-type">${esc(c.typeLine)}</p>` : ''}
           <div class="hero-badges">
             <span class="badge ${STATUS[c.status].cls}">${STATUS[c.status].label}</span>
+            ${c.rating ? `<span class="badge rar-badge rar-${rarity(c.rating).key}">◆ ${rarity(c.rating).label}</span>` : ''}
             ${c.bracket ? `<span class="badge badge-bracket">Bracket ${c.bracket} · ${BRACKETS[c.bracket]}</span>` : ''}
             ${c.tags.map((t) => `<span class="tag">#${esc(t)}</span>`).join('')}
           </div>
@@ -374,7 +386,7 @@ export function bindDetail(view) {
       case 'fav': return toggleFav(id);
       case 'edit': return openCommanderForm(c);
       case 'delete': return deleteCommander(id);
-      case 'quick-win': return quickGame(id, 'win');
+      case 'quick-win': return quickGame(id, 'win', e.target.closest('[data-action]'));
       case 'quick-loss': return quickGame(id, 'loss');
       case 'log-game': return openGameForm(c);
       case 'edit-game': return openGameForm(c, c.games.find((g) => g.id === gameId));
@@ -460,10 +472,10 @@ export function renderStats(view) {
 
     <div class="kpis">
       <div class="kpi kpi-ring">${ring(s.wr, { size: 104, stroke: 10, label: s.games ? pct(s.wr) : '—', sub: 'winrate' })}
-        <div><strong>${s.wins}</strong><span>${s.wins === 1 ? 'victoria' : 'victorias'} de ${s.games}</span></div></div>
-      <div class="kpi"><span class="kpi-icon">${icons.vault}</span><strong>${s.count}</strong><span>Comandantes</span></div>
-      <div class="kpi"><span class="kpi-icon">${icons.calendar}</span><strong>${s.games}</strong><span>Partidas</span></div>
-      <div class="kpi"><span class="kpi-icon">${icons.star}</span><strong>${avgRating ? (avgRating / 2).toLocaleString('es-ES', { maximumFractionDigits: 1 }) : '—'}</strong><span>Valoración media</span></div>
+        <div><strong data-count="${s.wins}">${s.wins}</strong><span>${s.wins === 1 ? 'victoria' : 'victorias'} de ${s.games}</span></div></div>
+      <div class="kpi"><span class="kpi-icon">${icons.vault}</span><strong data-count="${s.count}">${s.count}</strong><span>Comandantes</span></div>
+      <div class="kpi"><span class="kpi-icon">${icons.calendar}</span><strong data-count="${s.games}">${s.games}</strong><span>Partidas</span></div>
+      <div class="kpi"><span class="kpi-icon">${icons.star}</span><strong ${avgRating ? `data-count="${(avgRating / 2).toFixed(1)}" data-dec="1"` : ''}>${avgRating ? (avgRating / 2).toLocaleString('es-ES', { maximumFractionDigits: 1 }) : '—'}</strong><span>Valoración media</span></div>
       <div class="kpi"><span class="kpi-icon">${icons.flame}</span><strong>${bestStreak ? bestStreak.r.streak.n : '—'}</strong><span>${bestStreak ? `Racha actual · ${esc(bestStreak.c.name)}` : 'Racha de victorias'}</span></div>
     </div>
 
@@ -510,7 +522,46 @@ export function renderStats(view) {
           <span class="game-result ${RESULT[g.result].cls}">${RESULT[g.result].short}</span>
           <span class="recent-text"><strong>${esc(c.name)}</strong><small>${relDate(g.date)}${g.opponents ? ` · vs ${esc(g.opponents)}` : ''}</small></span></a></li>`).join('')}</ul>` : '<p class="muted small">Sin partidas registradas.</p>'}
       </section>
+
+      ${rivalsPanel(commanders)}
     </div>
+
+    ${achievementsPanel(commanders)}
+  </section>`;
+  countUp(view);
+}
+
+function rivalsPanel(played) {
+  const { top, nemesis, favorite } = computeRivals(played);
+  return `<section class="panel rivals-panel">
+    <h2 class="panel-title">${icons.swords} Rivales</h2>
+    ${top.length ? `<div class="rivals-body">
+      ${nemesis || favorite ? `<div class="rival-highlights">
+        ${nemesis ? `<div class="rival-hl nemesis"><span>😈</span><div><small>Tu bestia negra</small><strong>${esc(nemesis.name)}</strong><small>${pct(nemesis.wr)} de victorias en ${plural(nemesis.games, 'partida')}</small></div></div>` : ''}
+        ${favorite ? `<div class="rival-hl victim"><span>😎</span><div><small>Tu víctima favorita</small><strong>${esc(favorite.name)}</strong><small>${pct(favorite.wr)} de victorias en ${plural(favorite.games, 'partida')}</small></div></div>` : ''}
+      </div>` : ''}
+      <ul class="rival-list">${top.map((r) => `<li class="rival" tabindex="0" data-tip="${plural(r.wins, 'victoria')} en ${plural(r.games, 'partida')} contra ${esc(r.name)}">
+        <span class="rival-name">${esc(r.name)}</span>
+        <div class="bar-track"><span style="width:${r.wr * 100}%"></span></div>
+        <b>${pct(r.wr)}</b><small class="muted">${r.games}p</small></li>`).join('')}</ul>
+      </div>
+      <p class="hint">Winrate contra cada comandante rival, según el campo «Rivales» de tus partidas.</p>`
+    : '<p class="muted small">Apunta los rivales al registrar partidas (separados por comas) y aquí verás contra quién ganas y contra quién sufres.</p>'}
+  </section>`;
+}
+
+function achievementsPanel(played) {
+  const list = computeAchievements(played);
+  const done = list.filter((a) => a.done).length;
+  return `<section class="panel achievements">
+    <div class="panel-head"><h2 class="panel-title">${icons.medal} Logros</h2>
+      <span class="ach-count"><b>${done}</b>/${list.length}</span></div>
+    <div class="ach-progress"><span style="width:${(done / list.length) * 100}%"></span></div>
+    <ul class="ach-grid">${list.map((a) => `<li class="ach ${a.done ? 'done' : ''}" title="${esc(a.desc)}">
+      <span class="ach-medal">${a.icon}</span>
+      <div class="ach-text"><strong>${esc(a.name)}</strong><small>${esc(a.desc)}</small>
+        ${a.done ? '' : `<div class="ach-bar"><span style="width:${(a.cur / a.goal) * 100}%"></span></div><small class="ach-num">${a.cur}/${a.goal}</small>`}
+      </div></li>`).join('')}</ul>
   </section>`;
 }
 

@@ -3,6 +3,7 @@
 import { esc, $ } from './utils.js';
 import { pips, identityGradient } from './mana.js';
 import { record } from './store.js';
+import { rarity } from './fx.js';
 
 // ---------- Navegación ----------
 export const navigate = (hash) => {
@@ -124,6 +125,9 @@ export const icons = {
   flame: I('<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3.3.4 1.4 1.3 2.8 2.5 2.8Z"/>'),
   star: I('<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9Z"/>'),
   check: I('<path d="M20 6 9 17l-5-5"/>'),
+  dice: I('<rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/>'),
+  medal: I('<circle cx="12" cy="15" r="6"/><path d="M8.5 10.2 6 3h4l2 4 2-4h4l-2.5 7.2"/><path d="m12 12.5.9 1.8 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3Z"/>'),
+  swords: I('<path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2M9.5 6.5 14 2h3v3l-4.5 4.5M5 14l-2 2M7 17l-2 2"/>'),
   sun: I('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
   moon: I('<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>'),
   monitor: I('<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>'),
@@ -202,7 +206,7 @@ export const artLayer = (c, cls = 'art') => {
   const partner = c.partner?.art;
   const img = (src, extra = '') =>
     src
-      ? `<img src="${esc(src)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" ${extra} onerror="this.remove()">`
+      ? `<img src="${esc(src)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" ${extra} onload="this.classList.add('ld')" onerror="this.remove()">`
       : '';
   return `<div class="${cls} ${partner && !c.customImage ? 'split' : ''}" style="background:${identityGradient(c.colors)}">
     ${img(main)}${partner && !c.customImage ? img(partner, 'class="partner-art"') : ''}
@@ -223,15 +227,21 @@ export const BRACKETS = {
   5: 'cEDH',
 };
 
+/** Gema de rareza (como el símbolo de expansión de una carta). */
+export const gem = (rar) =>
+  `<span class="gem gem-${rar.key}" title="${rar.label}" aria-label="Rareza: ${rar.label}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 21 9l-9 13L3 9Z"/></svg></span>`;
+
 export const fullName = (c) => (c.partner?.name ? `${c.name} & ${c.partner.name}` : c.name);
 
 /** Tarjeta de la colección. */
 export function commanderCard(c) {
   const r = record(c);
   const wr = r.total ? Math.round(r.winrate * 100) : null;
-  return `<article class="cmd-card" data-id="${c.id}" tabindex="0" aria-label="${esc(fullName(c))}">
+  const rar = rarity(c.rating);
+  return `<article class="cmd-card rar-${rar.key}" data-id="${c.id}" tabindex="0" aria-label="${esc(fullName(c))}">
     ${artLayer(c)}
     <div class="cmd-shade"></div>
+    <div class="holo"></div>
     <div class="cmd-top">
       ${pips(c.colors, 20)}
       <button class="fav-btn ${c.favorite ? 'on' : ''}" data-action="fav" aria-pressed="${c.favorite}" aria-label="Favorito" type="button">${icons.heart}</button>
@@ -242,7 +252,7 @@ export function commanderCard(c) {
         ${c.bracket ? `<span class="badge badge-bracket" title="Bracket ${c.bracket}: ${BRACKETS[c.bracket]}">B${c.bracket}</span>` : ''}
       </div>
       <h3 class="cmd-name">${esc(c.name)}${c.partner?.name ? `<span class="cmd-partner">& ${esc(c.partner.name)}</span>` : ''}</h3>
-      <div class="cmd-rating">${starsView(c.rating, 15)}${c.rating ? `<span>${(c.rating / 2).toLocaleString('es-ES')}</span>` : '<span class="muted">Sin puntuar</span>'}</div>
+      <div class="cmd-rating">${c.rating ? gem(rar) : ''}${starsView(c.rating, 15)}${c.rating ? `<span>${(c.rating / 2).toLocaleString('es-ES')}</span>` : '<span class="muted">Sin puntuar</span>'}</div>
       <div class="cmd-record">
         <div class="rec-nums">
           <span class="w">${r.wins}<small>V</small></span>
