@@ -1,6 +1,6 @@
 // Punto de entrada: sesión, enrutado, tema y acciones globales
 
-import { $, $$, esc } from './utils.js';
+import { $, $$, esc, copyText } from './utils.js';
 import * as store from './store.js';
 import * as cloud from './cloud.js';
 import { initModal, toast, confirmDialog } from './ui.js';
@@ -170,6 +170,28 @@ bindDetail(view);
 bindWishlist(view);
 bindSettings(view, { applyTheme });
 bindTilt(document.body);
+
+// Copiar y compartir enlaces de mazos
+document.addEventListener('click', async (e) => {
+  const cp = e.target.closest('[data-copy]');
+  if (cp) {
+    e.preventDefault();
+    const ok = await copyText(cp.dataset.copy);
+    if (ok) {
+      cp.classList.add('copied');
+      setTimeout(() => cp.classList.remove('copied'), 1400);
+    }
+    toast(ok ? 'Enlace copiado. ¡Pégalo donde quieras!' : 'No se pudo copiar el enlace', { icon: ok ? '🔗' : '', tone: ok ? '' : 'warn' });
+    return;
+  }
+  const sh = e.target.closest('[data-share]');
+  if (sh) {
+    e.preventDefault();
+    try {
+      await navigator.share({ title: sh.dataset.shareTitle || 'Mazo', url: sh.dataset.share });
+    } catch {}
+  }
+});
 
 document.addEventListener('click', (e) => {
   const a = e.target.closest('[data-action]');

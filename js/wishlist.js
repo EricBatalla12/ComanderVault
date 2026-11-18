@@ -1,6 +1,6 @@
 // Vista "Por jugar": comandantes que quieres probar o construir
 
-import { esc, $, $$, isSafeUrl, siteOf } from './utils.js';
+import { esc, $, $$, isSafeUrl, siteOf, archidektSearch } from './utils.js';
 import { pip, pips, comboName } from './mana.js';
 import * as store from './store.js';
 import { icons, artLayer, toast, fullName } from './ui.js';
@@ -90,7 +90,9 @@ function wishCard(c) {
       <div class="wish-actions">
         <button class="btn btn-small btn-win" data-action="wish-played" type="button">${icons.check} Lo he jugado</button>
         <span class="wish-links">
-          ${firstLink ? `<a class="icon-btn" href="${esc(firstLink.url)}" target="_blank" rel="noopener noreferrer" title="${esc(firstLink.label || siteOf(firstLink.url).name)}" aria-label="Abrir mazo" data-stop>${icons.external}</a>` : ''}
+          ${firstLink ? `<a class="icon-btn" href="${esc(firstLink.url)}" target="_blank" rel="noopener noreferrer" title="${esc(firstLink.label || siteOf(firstLink.url).name)}" aria-label="Abrir mazo" data-stop>${icons.external}</a>
+            <button class="icon-btn" type="button" data-copy="${esc(firstLink.url)}" data-stop aria-label="Copiar enlace del mazo" title="Copiar enlace">${icons.copy}</button>` : ''}
+          <a class="icon-btn" href="${esc(archidektSearch(c.name))}" target="_blank" rel="noopener noreferrer" title="Buscar mazos en Archidekt" aria-label="Buscar mazos en Archidekt" data-stop><span class="site-badge mini" style="--site:#f0a33a">AR</span></a>
           ${edhrec ? `<a class="icon-btn" href="${esc(edhrec)}" target="_blank" rel="noopener noreferrer" title="Ver en EDHREC" aria-label="Ver en EDHREC" data-stop><span class="site-badge mini" style="--site:#5b7cfa">ED</span></a>` : ''}
           <button class="icon-btn" data-action="wish-delete" type="button" aria-label="Quitar de la lista">${icons.trash}</button>
         </span>

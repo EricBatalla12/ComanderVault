@@ -242,6 +242,7 @@ export function openCommanderForm(existing, { wishlist = existing?.status === 'w
           <span class="site-badge" style="--site:${s.color}" title="${esc(s.name)}">${esc(s.short)}</span>
           <input class="link-url" type="url" inputmode="url" placeholder="https://moxfield.com/decks/…" value="${esc(l.url)}" aria-label="URL del mazo">
           <input class="link-label" placeholder="${esc(l.url ? s.name : 'Etiqueta (opcional)')}" value="${esc(l.label)}" aria-label="Etiqueta">
+          <button type="button" class="icon-btn" data-paste-link aria-label="Pegar enlace copiado" title="Pegar enlace copiado">${icons.clipboard}</button>
           <button type="button" class="icon-btn" data-remove-link aria-label="Quitar enlace">${icons.trash}</button>
         </div>`;
       })
@@ -259,7 +260,21 @@ export function openCommanderForm(existing, { wishlist = existing?.status === 'w
       row.querySelector('.link-label').placeholder = l.url ? s.name : 'Etiqueta (opcional)';
     } else l.label = e.target.value;
   });
-  linksBox.addEventListener('click', (e) => {
+  linksBox.addEventListener('click', async (e) => {
+    const paste = e.target.closest('[data-paste-link]');
+    if (paste) {
+      const input = paste.closest('.link-row').querySelector('.link-url');
+      try {
+        const text = (await navigator.clipboard.readText()).trim();
+        if (!text) return toast('No hay nada copiado', { tone: 'warn' });
+        input.value = text;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      } catch {
+        input.focus();
+        toast('Mantén pulsado el campo y elige «Pegar»', { tone: 'warn' });
+      }
+      return;
+    }
     if (!e.target.closest('[data-remove-link]')) return;
     draft.links.splice(+e.target.closest('.link-row').dataset.i, 1);
     renderLinks();

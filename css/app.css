@@ -1061,3 +1061,16 @@ body.has-ambient::before { opacity: 1; }
   .roulette-card { width: min(190px, 48vw); }
   .roulette-opts .chip { height: 30px; padding: 0 10px; font-size: 0.78rem; }
 }
+
+/* ---------- Enlaces: copiar / compartir / pegar ---------- */
+.link-item { display: flex; align-items: center; gap: 4px; }
+.link-item .link-card { flex: 1; min-width: 0; }
+.link-item.subtle .link-card { background: transparent; }
+.link-act { flex: none; }
+.link-act.copied { color: var(--win); background: var(--win-soft); }
+.links-sub { margin: 16px 0 8px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+.link-row { grid-template-columns: 34px 1.6fr 1fr 38px 38px; }
+@media (max-width: 760px) {
+  .link-row { grid-template-columns: 34px 1fr 38px 38px; }
+  .link-row .link-label { grid-column: 2 / span 3; grid-row: 2; }
+}

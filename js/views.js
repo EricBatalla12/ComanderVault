@@ -1,6 +1,6 @@
 // Vistas principales: colección, detalle, estadísticas y ajustes
 
-import { esc, $, $$, fmtDate, relDate, pct, siteOf, download, todayISO, isSafeUrl } from './utils.js';
+import { esc, $, $$, fmtDate, relDate, pct, siteOf, download, todayISO, isSafeUrl, archidektSearch } from './utils.js';
 import { COLORS, COLOR_INFO, pip, pips, comboName } from './mana.js';
 import * as store from './store.js';
 import {
@@ -320,11 +320,14 @@ export function renderDetail(view, id) {
       <section class="panel links-panel">
         <div class="panel-head"><h2 class="panel-title">${icons.link} Mazos</h2>
           <button class="btn btn-small btn-ghost" data-action="edit" type="button">${icons.edit} Gestionar</button></div>
-        ${c.links.length || edhrec || c.scryfallUri ? `<ul class="links">
-          ${c.links.map((l) => linkItem(l.url, l.label)).join('')}
+        ${c.links.length ? `<ul class="links">${c.links.map((l) => linkItem(l.url, l.label)).join('')}</ul>`
+          : `<p class="muted small">Aún no hay enlaces a tus listas. Pulsa «Gestionar» y pega el de Moxfield, Archidekt…</p>`}
+        <p class="links-sub">Explorar</p>
+        <ul class="links">
+          ${linkItem(archidektSearch(c.name), 'Mazos en Archidekt', true)}
           ${edhrec ? linkItem(edhrec, 'Página en EDHREC', true) : ''}
           ${c.scryfallUri ? linkItem(c.scryfallUri, 'Carta en Scryfall', true) : ''}
-        </ul>` : `<p class="muted small">Aún no hay enlaces. Añade tu lista de Moxfield, Archidekt…</p>`}
+        </ul>
       </section>
 
       ${c.notes ? `<section class="panel notes-panel"><h2 class="panel-title">${icons.edit} Notas</h2><p class="notes">${esc(c.notes)}</p></section>` : ''}
@@ -367,10 +370,13 @@ const linkItem = (url, label, subtle = false) => {
     const u = new URL(url);
     path = (u.hostname.replace(/^www\./, '') + u.pathname).replace(/\/$/, '');
   } catch {}
-  return `<li><a class="link-card ${subtle ? 'subtle' : ''}" href="${esc(url)}" target="_blank" rel="noopener noreferrer">
+  return `<li class="link-item ${subtle ? 'subtle' : ''}"><a class="link-card" href="${esc(url)}" target="_blank" rel="noopener noreferrer">
     <span class="site-badge" style="--site:${s.color}">${esc(s.short)}</span>
     <span class="link-text"><strong>${esc(label || s.name)}</strong><small>${esc(path)}</small></span>
-    ${icons.external}</a></li>`;
+    ${icons.external}</a>
+    <button class="icon-btn link-act" type="button" data-copy="${esc(url)}" aria-label="Copiar enlace" title="Copiar enlace">${icons.copy}</button>
+    ${'share' in navigator ? `<button class="icon-btn link-act" type="button" data-share="${esc(url)}" data-share-title="${esc(label || s.name)}" aria-label="Compartir" title="Compartir">${icons.share}</button>` : ''}
+  </li>`;
 };
 
 export function bindDetail(view) {

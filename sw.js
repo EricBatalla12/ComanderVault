@@ -1,6 +1,6 @@
 // Service worker: permite instalar la app y abrirla sin conexión.
 // Al cambiar archivos de la app, sube VERSION para que los dispositivos se actualicen.
-const VERSION = 'v2.1.0';
+const VERSION = 'v2.2.0';
 const SHELL = `cv-shell-${VERSION}`;
 const RUNTIME = 'cv-runtime';
 

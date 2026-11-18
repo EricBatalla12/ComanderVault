@@ -93,3 +93,27 @@ export const download = (filename, text, type = 'application/json') => {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 };
+
+/** Copia texto al portapapeles (con alternativa para navegadores antiguos). */
+export async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try {
+      ok = document.execCommand('copy');
+    } catch {}
+    ta.remove();
+    return ok;
+  }
+}
+
+/** Búsqueda de mazos en Archidekt filtrada por comandante. */
+export const archidektSearch = (name) => `https://archidekt.com/search/decks?commanderName=${encodeURIComponent(name)}`;
