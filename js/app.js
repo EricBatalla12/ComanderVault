@@ -300,5 +300,19 @@ document.addEventListener('click', (e) => {
 updateInstallUI();
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+  // Cuando se publica una versión nueva, el service worker nuevo toma el control
+  // y recargamos una vez para mostrarla (no en la primera instalación).
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloaded || $('#modal').open) return;
+    reloaded = true;
+    location.reload();
+  });
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => {
+      // Buscar actualizaciones también al volver a la app
+      document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && reg.update().catch(() => {}));
+    }).catch(() => {});
+  });
 }

@@ -1,6 +1,6 @@
 // Service worker: permite instalar la app y abrirla sin conexión.
 // Al cambiar archivos de la app, sube VERSION para que los dispositivos se actualicen.
-const VERSION = 'v2.2.0';
+const VERSION = 'v2.3.0';
 const SHELL = `cv-shell-${VERSION}`;
 const RUNTIME = 'cv-runtime';
 
@@ -31,7 +31,8 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(SHELL).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // cache: 'reload' evita guardar copias viejas que el navegador tuviera en su caché HTTP
+  e.waitUntil(caches.open(SHELL).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -71,7 +72,8 @@ self.addEventListener('fetch', (e) => {
   // Archivos de la app: red primero (para recibir actualizaciones), caché si no hay conexión
   if (url.origin === location.origin) {
     e.respondWith(
-      fetch(req)
+      // no-cache: pregunta siempre al servidor si hay versión nueva (respuesta 304 si no ha cambiado)
+      fetch(req, { cache: 'no-cache' })
         .then((res) => {
           if (res.ok) {
             const copy = res.clone();
